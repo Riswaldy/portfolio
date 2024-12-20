@@ -1,0 +1,80 @@
+import {Suspense, useEffect, useState} from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Preload, useGLTF } from '@react-three/drei';
+import CanvasLoader from '../Loader';
+
+// Component for the 3D computer model
+const Computers = ( {isMobile} ) => {
+  const { scene } = useGLTF('../desktop_pc/scene.gltf'); // Destructure 'scene' directly
+
+  return (
+    <mesh>
+      {/* Lighting setup */}
+      <hemisphereLight intensity={0.25} groundColor="black" />
+      <pointLight intensity={2} />
+      <spotLight
+        position={[-20, 50, 10]}
+        angle={0.12}
+        penumbra={1}
+        intensity={1}
+        castShadow
+        shadow-mapSize={1024}
+      />
+
+      {/* 3D Model */}
+      <primitive
+        object={scene}
+        scale={isMobile ? 0.7 : 0.75}
+        position={isMobile ? [0, -3, -2.2] : [0, -3.25, -1.5]}
+        rotation={[-0.01, -0.2, -0.1]}
+      />
+    </mesh>
+  );
+};
+
+// Canvas wrapper for rendering the Computers component
+const ComputersCanvas = () => {
+  const[isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 500px');
+
+    setIsMobile(mediaQuery.matches);
+
+    const handleMediaQueryChange = (event) => {
+      setIsMobile(event.matches);
+    }
+
+    mediaQuery.addEventListener('change', handleMediaQueryChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaQueryChange);
+    }
+
+  }, []);
+
+  return (
+    <Canvas
+      frameloop="demand"
+      shadows
+      camera={{ position: [20, 3, 5], fov: 25 }}
+      gl={{ preserveDrawingBuffer: true }}
+    >
+      {/* Fallback loader while the model is being loaded */}
+      <Suspense fallback={<CanvasLoader />}>
+        {/* Orbit controls to manipulate the view */}
+        <OrbitControls
+          enableZoom={false}
+          maxPolarAngle={Math.PI / 2}
+          minPolarAngle={Math.PI / 2}
+        />
+        <Computers isMobile={isMobile} />
+      </Suspense>
+
+      {/* Preload all assets */}
+      <Preload all />
+    </Canvas>
+  );
+};
+
+export default ComputersCanvas;
